@@ -7,6 +7,7 @@ def loo(X_train, y_train, h_max: int) -> int:
     Y = y_train.values
     max_percent = 0
     cur_percent = 0
+    best_h = 0
 
     for h in range(1, h_max+1):
         correct = 0
@@ -26,9 +27,13 @@ def loo(X_train, y_train, h_max: int) -> int:
             if (calc == Y[i][0]):
                 correct+=1
         cur_percent = correct/len(X) * 100
-        max_percent = max(max_percent, cur_percent)
         print(f"Current percentage h = {h}: {cur_percent:.2f}%")
-    return h
+        if (cur_percent > max_percent):
+            best_h = h
+            max_percent = cur_percent
+        else:
+            break
+    return best_h
 
 
 def parzen(X_test, Y_test, h):
