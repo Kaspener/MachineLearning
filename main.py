@@ -1,54 +1,27 @@
-import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import normalize
-from sklearn.metrics import mean_squared_error
-from sklearn.impute import SimpleImputer
-import numpy as np
+from tensorflow.keras.datasets import cifar10
+from tensorflow.keras import layers, models
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.utils import to_categorical
 
-def impute(dataset):
-    imputer = SimpleImputer(strategy="mean")
-    return imputer.fit_transform(dataset)
+(x_train, y_train), (x_test, y_test) = cifar10.load_data()
+x_train = x_train.astype('float32') / 255.0
+x_test = x_test.astype('float32') / 255.0
 
-data = pd.read_csv('winequalityN.csv')
+y_train = to_categorical(y_train, 10)
+y_test = to_categorical(y_test, 10)
 
-for column in data.columns[1:]:
-    data[column] = pd.to_numeric(data[column], errors='coerce')
+model = models.Sequential()
+model.add(layers.Flatten(input_shape=(32, 32, 3)))
+model.add(layers.Dense(128, activation='relu'))
+model.add(layers.Dropout(0.2))
+model.add(layers.Dense(64, activation='relu'))
+model.add(layers.Dropout(0.2))
+model.add(layers.Dense(10, activation='softmax'))
 
-red_wine = data[data['type'] == 'red']
-white_wine = data[data['type'] == 'white']
-all_wine = data
+model.compile(optimizer=Adam(), loss='categorical_crossentropy', metrics=['accuracy'])
 
-def build_and_evaluate_model(wine_data):
-    X = wine_data.iloc[:, 1:-1]
-    y = wine_data.iloc[:, -1]
-    
-    X = impute(X)
-    
-    X_normalized = normalize(X, axis=0)
-    
-    mse_list = []
-    
-    for _ in range(10):
-        X_train, X_test, y_train, y_test = train_test_split(X_normalized, y, test_size=0.3, random_state=np.random.randint(1000))
-        
-        model = LinearRegression()
-        model.fit(X_train, y_train)
-        
-        y_pred = model.predict(X_test)
-        
-        mse = mean_squared_error(y_test, y_pred)
-        mse_list.append(mse)
+history = model.fit(x_train, y_train, epochs=20, batch_size=128, verbose=1, validation_data=(x_test, y_test))
 
-        print(f"Среднеквадратичная ошибка составляет: {mse}")
-    
-    return np.mean(mse_list)
-
-mse_red = build_and_evaluate_model(red_wine)
-mse_white = build_and_evaluate_model(white_wine)
-mse_all = build_and_evaluate_model(all_wine)
-
-print()
-print(f"Средняя ошибка для красного вина: {mse_red}")
-print(f"Средняя ошибка для белого вина: {mse_white}")
-print(f"Средняя ошибка для всех вин: {mse_all}")
+test_loss, test_acc = model.evaluate(x_test, y_test)
+print(f"Test loss: {test_loss}")
+print(f"Test accuracy: {test_acc}")
